@@ -1,0 +1,19 @@
+# Core runtime
+torch>=2.1
+torchvision>=0.16
+numpy>=1.24
+
+# Data, config, and utilities
+Pillow>=9.5
+PyYAML>=6.0
+tqdm>=4.65
+
+# Metrics and post-processing
+scikit-learn>=1.3
+scipy>=1.10
+
+# Optional utility script dependency (postprocess/train_good_thresholds.py)
+pandas>=2.0
+
+# Optional (not required if using inference.type: torch_knn)
+# faiss-gpu

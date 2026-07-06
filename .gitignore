@@ -1,0 +1,52 @@
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# ---- Virtual envs ----
+.venv/
+venv/
+env/
+
+# ---- Secrets / local config ----
+.env
+*.env
+*.key
+*.pem
+
+# ---- Logs / scratch ----
+nohup.out
+*.log
+*.tmp
+
+# ---- Datasets (never commit) ----
+data/
+dataset/
+datasets/
+
+# ---- Heavy model / feature binaries ----
+*.pth
+*.pt
+*.ckpt
+*.pkl
+*.npz
+*.npy
+*.faiss
+*.h5
+*.bin
+backbones/weights/
+
+# ---- Run outputs: keep only markdown write-ups, drop all binaries/JSON/CSV ----
+runs_consensuscore/**
+!runs_consensuscore/**/
+!runs_consensuscore/**/*.md
+
+# ---- Figures: keep final PNG/PDF at figures/ root, drop intermediate maps ----
+figures/fig5_maps/
+figures/qual_maps/
+figures/pb_runs/

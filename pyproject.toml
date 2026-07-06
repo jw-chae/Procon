@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "skipcore"
+version = "0.1.0"
+description = "ProCon: training-free anomaly detection via depth-selective soft-projection consensus."
+requires-python = ">=3.9"
+dependencies = [
+  "torch",
+  "numpy",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["skipcore*"]

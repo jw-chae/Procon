@@ -1,0 +1,146 @@
+# SkipCore Configuration for Real-IAD (single-view / SV protocol)
+# Multi-layer DINOv2 backbone; same engine as MVTec, Real-IAD data adapter.
+
+backbone:
+  final_norm: false
+  layer_fusion: concat
+  layer_norm_mode: l2
+  layer_weights: linear_recent_heavier
+  layers:
+  - -1
+  - -3
+  - -6
+  - -9
+  - -12
+  model_name: dinov2_vitb14
+  pretrained: true
+  proj_dim: 512
+  proj_seed: 42
+  proj_type: rp
+  type: dinov2_multilayer
+
+dataset:
+  batch_size: 16
+  categories:
+  - audiojack
+  - bottle_cap
+  - button_battery
+  - end_cap
+  - eraser
+  - fire_hood
+  - mint
+  - mounts
+  - pcb
+  - phone_battery
+  - plastic_nut
+  - plastic_plug
+  - porcelain_doll
+  - regulator
+  - rolled_strip_base
+  - sim_card_set
+  - switch
+  - tape
+  - terminalblock
+  - toothbrush
+  - toy
+  - toy_brick
+  - transistor1
+  - u_block
+  - usb
+  - usb_adaptor
+  - vcpill
+  - wooden_beads
+  - woodstick
+  - zipper
+  category: audiojack
+  gpu_preprocess: true
+  img_size: 392
+  name: realiad
+  num_workers: 8
+  resize: 448
+  root: /media/jjack/Extreme SSD/dataset/realiad/realiad_1024
+
+eval:
+  pixel_fpr_limit: 0.3
+
+experiment:
+  name: skipcore_v1
+  seed: 0
+
+features:
+  normalize: null
+  token_source: patch
+  type: vit_patchcore
+
+inference:
+  type: faiss_gpu
+
+memory:
+  device: null
+  dimension_to_project_features_to: 196
+  dtype: fp16
+  keep_in_gpu: true
+  number_of_starting_points: 10
+  percentage: 0.01
+  return_ordered_indices: false
+  seed: 0
+  type: approx_greedy_coreset
+
+postprocess:
+  blur_sigma: 4
+  blur_torch: true
+  threshold:
+    tpr: 0.99
+    type: fpr_at_tpr
+  topk_pool: null
+
+runtime:
+  cudnn_benchmark: true
+  inference_mode: true
+  matmul_precision: high
+  tf32: true
+
+routing:
+  enable: true
+  bank_size: 16
+  source: full
+  method: kcenter
+  select_bank: true
+  scorer_mode: eager
+  scorer_backend: torch_knn
+  scorer_device: cuda
+  scorer_cache: 1
+  backend: torch_knn
+  normalize: l2
+  aggregate: huber
+  log_cosh_scale: 1.0
+  patch_samples: 0
+  grid_size: null
+  trim_percent: 0.0
+  huber_delta: 1.0
+
+score_structure:
+  cov_mode: diag
+  enable: true
+  features: null
+  fit: fit
+  fit_max_images: 0
+  fit_split: train
+  lambda_struct: 0.05
+  save_stats: true
+  stats_path: null
+  topk_ratio: 0.01
+  struct_mode: combined
+  phi_mode: full
+
+scoring:
+  image_agg: max
+  image_score: scorer
+  k: 5
+  knn_score_mode: mean
+  type: knn_l2
+
+viz:
+  enabled: true
+  topk: 8
+  alpha: 0.5

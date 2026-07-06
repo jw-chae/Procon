@@ -1,0 +1,32 @@
+Use a multi-panel layout with four labeled panels: (a), (b), (c), (d). Do not use a large "training-free" banner. Do not include version labels such as V0, V1, V9. Do not show a decoder, loss, backpropagation, pseudo anomaly generation, or learned fusion.
+
+Panel (a): Overall ProCon pipeline.
+Show normal images and test image passing through the same frozen DINOv2 encoder f_Q. Use a small snowflake icon or label "Frozen" near the encoder, not a large banner. Tap four selected layers: Layer 4, Layer 5, Layer 7, Layer 10. For normal images, features from each layer go to layer-wise coreset memories M_l. For the test image, features from the same layers go to soft projection residual scoring, then to bank-wise and layer-wise consensus, producing an anomaly map S_map and image score S_img. The test image is an ANOMALOUS example: its anomaly map S_map is bright/red where the defect is, and the image score S_img is HIGH (e.g. 0.91). Do NOT show a low score for an anomalous example. Use different arrow styles or colors for offline memory construction and test-time scoring.
+
+Panel (b): Soft normal projection module.
+Zoom into one test patch z and one layer-specific memory bank M_{l,b}. Show k nearby normal memory anchors m_1,...,m_k. Compute softmax weights w_j, form z_hat = sum_j w_j m_j, and compute residual r = ||z - z_hat||. Visually show z, nearby anchors, the projected point z_hat, and the residual vector. Label this as "decoder-free residual".
+
+Panel (c): Projection consensus.
+Show residual maps R_{l,1},...,R_{l,B} from B seed-perturbed banks. Aggregate them by median over banks to get S_l. Then show S^(4), S^(5), S^(7), S^(10) aggregated by mean over layers to produce S_map. Then top-k readout produces S_img.
+
+Panel (d): Hard retrieval vs soft projection.
+Show a small conceptual comparison. Left: hard NN lookup, z matched to one nearest anchor m*, score ||z - m*||. Right: soft projection, z reconstructed from a local normal neighborhood, residual ||z - z_hat||. Emphasize "single anchor" versus "local normal neighborhood".
+
+Visual style:
+White background, clean vector graphics, compact boxes, thin arrows, readable labels, muted professional colors. Use panel borders or dashed separators like academic method figures. Keep text concise. Use industrial object icons or abstract patch tokens instead of landscape photos. Avoid gradients, shadows, 3D effects, glossy icons, and decorative AI-style colors.
+
+Required labels:
+ProCon
+Frozen DINOv2 encoder f_Q
+Layer taps Layer 4, Layer 5, Layer 7, Layer 10
+Layer-wise coreset memory M_l
+Soft normal projection
+z_hat = sum_j w_j m_j
+r = ||z - z_hat||
+Median over banks
+Mean over layers
+Anomaly map S_map
+Image score S_img (high, e.g. 0.91)
+
+Do not include:
+large training-free banner, no decoder training text blocks, no learned weights text blocks, V0/V1/V9, PatchCore, baseline names, Layer 1 excluded, loss functions, backpropagation, pseudo anomalies.

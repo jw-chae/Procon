@@ -1,0 +1,47 @@
+Figure: Hard Retrieval versus Decoder-Free Soft Projection (concept diagram).
+
+GOAL
+A single-column conceptual figure with TWO side-by-side panels drawn in an
+abstract 2-D feature space. It contrasts how a PatchCore-style memory scores a
+test patch (left) versus how our method ProCon scores it (right). This is a
+concept illustration, not a plot of real numbers.
+
+SHARED ELEMENTS (both panels)
+- A faint curved band labelled "local normal manifold" representing where normal
+  patch features lie.
+- Several small blue dots ON or NEAR the band = normal memory anchors m_j.
+- One red star sitting clearly OFF the band (above it) = the test patch z, which
+  is anomalous (far from the normal manifold).
+
+LEFT PANEL — "Hard retrieval (PatchCore)"
+- Draw a single straight line from the red star z to its ONE nearest blue anchor
+  m*. Circle that nearest anchor.
+- Label the line with the score formula: s(z) = || z - m* ||.
+- Caption under the panel: "one anchor explains z".
+- Message: the score is just the distance to the single closest memory item.
+
+RIGHT PANEL — "Soft projection (ProCon)"
+- Pick the k = 5 nearest blue anchors around z. Draw 5 thin green arrows, one
+  from each of those anchors, all pointing to a single green diamond point
+  z_hat that lies near the normal band (the reconstruction). Arrow thickness
+  encodes a softmax weight w_j (closer anchors -> thicker arrow).
+- z_hat = sum_j w_j m_j  (weighted combination of local normal anchors).
+- Draw ONE bold black arrow from z_hat to the red star z; label it the residual
+  r(z) = || z - z_hat ||.
+- Caption under the panel: "local normal neighborhood reconstructs z".
+- Message: the memory is used as a decoder-free reconstruction operator; the
+  anomaly score is the reconstruction residual, not a single nearest distance.
+
+TOP TAKEAWAY (one line above both panels)
+"NN asks whether one normal anchor is close; ProCon asks whether z is
+reconstructible from a local normal neighborhood."
+
+STYLE
+- Clean, minimal, publication quality, white background.
+- Color-blind-safe palette: normal anchors blue, reconstruction green, residual
+  black, test patch red/orange. Distinguishable without color too (shapes:
+  dot = anchor, star = test, diamond = reconstruction).
+- Math set as proper symbols (z, m_j, m*, z_hat, w_j, r(z)).
+- Legend: normal anchors m_j; test patch z; nearest anchor m*; k local anchors;
+  reconstruction z_hat; residual r(z).
+- No photographic content; abstract vector style suitable for an AAAI paper.
