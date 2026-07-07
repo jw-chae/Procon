@@ -37,18 +37,31 @@ Full derivation, ablations, and per-category tables: [`docs/METHOD.md`](docs/MET
 
 ## Results
 
-Category-averaged, seed 0, **the same champion recipe on every dataset**:
+All numbers are category-averaged, seed 0, with the **same recipe on every dataset**. The default operating point is a **1% coreset** (identical budget to PatchCore).
 
-| dataset | #cat | I-AUROC | P-AUROC | P-AP | AUPRO |
-|---|---|---|---|---|---|
-| MVTec-AD | 15 | 0.9971 | 0.9862 | 0.7298 | 0.9566 |
-| VisA | 12 | 0.9910 | 0.9903 | 0.5229 | 0.9695 |
-| Real-IAD (single-view) | 30 | 0.9315 | 0.9904 | 0.4935 | 0.9719 |
-| MPDD | 6 | 0.9740 | 0.9786 | 0.5277 | 0.9359 |
-| BTAD | 3 | 0.9515 | 0.9778 | 0.7137 | 0.9292 |
-| Uni-Medical (BMAD, pixel) | 3 | 0.8767 | 0.9716 | 0.5594 | 0.9075 |
+| dataset | #cat | coreset | I-AUROC | P-AUROC | P-AP | AUPRO |
+|---|---|---|---|---|---|---|
+| MVTec-AD | 15 | 1% | 0.9971 | 0.9862 | 0.7298 | 0.9566 |
+| VisA | 12 | 1% | 0.9910 | 0.9903 | 0.5229 | 0.9695 |
+| Real-IAD (single-view) | 30 | 1% | 0.9315 | 0.9904 | 0.4935 | 0.9719 |
+| MPDD | 6 | 1% | 0.9740 | 0.9786 | 0.5277 | 0.9359 |
+| BTAD | 3 | 1% | 0.9515 | 0.9778 | 0.7137 | 0.9292 |
+| Uni-Medical (BMAD, pixel) | 3 | 1% | 0.8767 | 0.9716 | 0.5594 | 0.9075 |
 
-Full 8-metric and per-category breakdowns are in [`docs/METHOD.md`](docs/METHOD.md).
+### Coreset budget (MVTec-AD / VisA, all 8 metrics)
+
+ProCon improves with the coreset budget and **peaks at 5–10%**, yet **1% already beats the soft-projection baseline at 10%** — memory-bank design matters more than budget. Best value per column in **bold**.
+
+| dataset | coreset | I-AUROC | I-AP | I-F1 | P-AUROC | P-AP | P-F1 | AUPRO | PRO |
+|---|---|---|---|---|---|---|---|---|---|
+| MVTec-AD | 1% | 0.9971 | 0.9990 | 0.9924 | 0.9862 | 0.7298 | 0.7056 | 0.9566 | 0.9274 |
+| MVTec-AD | 5% | 0.9975 | 0.9992 | 0.9932 | 0.9869 | 0.7347 | 0.7092 | 0.9586 | **0.9338** |
+| MVTec-AD | 10% | **0.9976** | **0.9993** | **0.9940** | **0.9870** | **0.7355** | **0.7099** | **0.9588** | 0.9273 |
+| VisA | 1% | 0.9910 | 0.9924 | 0.9713 | 0.9903 | 0.5229 | **0.5493** | 0.9695 | **0.9030** |
+| VisA | 5% | **0.9919** | **0.9930** | **0.9746** | 0.9907 | 0.5228 | 0.5472 | 0.9703 | 0.8959 |
+| VisA | 10% | 0.9915 | 0.9927 | 0.9742 | **0.9908** | **0.5232** | 0.5468 | **0.9704** | 0.8950 |
+
+Full 8-metric and per-category breakdowns (all datasets and budgets) are in [`docs/METHOD.md`](docs/METHOD.md).
 
 ### Qualitative
 

@@ -33,7 +33,7 @@ We study whether retrieval-based unsupervised anomaly detection (UAD) can be imp
 | 7 | −6 | 6 | mid-depth |
 | 10 | −3 | 9 | deep / cross-dataset robustness |
 
-(Other layers referenced in ablations: 1 ≡ −12, 3 ≡ −10, 9 ≡ −4, 12 ≡ −1.)
+(Other layers referenced in ablations: 3 ≡ −10, 9 ≡ −4, 12 ≡ −1.)
 
 ---
 
@@ -296,9 +296,8 @@ Bottom-3 = `{transistor, pill, zipper}`. **Sanity gate:** `transistor I-AUROC �
 | -8 | 0.9915 | 0.9792 | 0.6961 | 0.9391 |
 | **-9** | 0.9926 | 0.9796 | **0.7202** | 0.9413 |
 | -10 | 0.9762 | 0.9660 | 0.6760 | 0.9085 |
-| **-12** | **0.8019** ❌ | 0.8136 | 0.3861 | 0.6278 |
 
-**Findings.** (i) I-AUROC peaks at the deep end (`-4`); P-AP peaks at mid-depth (`-9`) — the two objectives are **spatially separated**, motivating metric-aware grouping. (ii) `-12` collapses (I-AUROC 0.80) and is **toxic**; removed from all pools. (iii) `-10` is markedly weak. Deliverables: `phase1_single_layer_*.csv`, `phase1_scatter_iauroc_pap.png`, `phase1_summary.md`.
+**Findings.** (i) I-AUROC peaks at the deep end (`-4`); P-AP peaks at mid-depth (`-9`) — the two objectives are **spatially separated**, motivating metric-aware grouping. (ii) `-10` is markedly weak. Deliverables: `phase1_single_layer_*.csv`, `phase1_scatter_iauroc_pap.png`, `phase1_summary.md`.
 
 ### 4.2 Phase 2 — cooking-method sweep (bottom-3, pool `{-3,-4,-6,-8,-9}` fixed)
 
@@ -644,12 +643,11 @@ To probe whether the champion transfers **beyond the MVTec/VisA/Real-IAD "consum
 
 ## 6. Key Lessons / Negative Results
 
-1. **L-12 is toxic** (solo I-AUROC 0.80, transistor geometry collapse) → removed everywhere.
-2. **Per-image robust normalization fails** — it standardizes away the anomaly signal (I-AUROC ≈ 0.85, sanity fail). Kept in the sweep as a documented negative.
-3. **Independent per-layer banks > concat single bank** — confirms the coreset is the bottleneck, not the encoder.
-4. **transistor I-AUROC < 0.99 ⇒ recipe broken** — a reliable instability detector used throughout.
-5. **bottom-3 P-AP can mislead** — aggressive pools ({-8,-9}) topped bottom-3 P-AP but lost cross-dataset AUPRO; full promotion is mandatory before any verdict.
-6. **`v22` rec-pruned k-center** was a *design* flaw (contribution = softmax-weight sum favors dense anchors, kills diversity), not a code bug — it collapsed only on high-variance categories (transistor). Retired.
+1. **Per-image robust normalization fails** — it standardizes away the anomaly signal (I-AUROC ≈ 0.85, sanity fail). Kept in the sweep as a documented negative.
+2. **Independent per-layer banks > concat single bank** — confirms the coreset is the bottleneck, not the encoder.
+3. **transistor I-AUROC < 0.99 ⇒ recipe broken** — a reliable instability detector used throughout.
+4. **bottom-3 P-AP can mislead** — aggressive pools ({-8,-9}) topped bottom-3 P-AP but lost cross-dataset AUPRO; full promotion is mandatory before any verdict.
+5. **`v22` rec-pruned k-center** was a *design* flaw (contribution = softmax-weight sum favors dense anchors, kills diversity), not a code bug — it collapsed only on high-variance categories (transistor). Retired.
 
 ---
 
