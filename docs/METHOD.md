@@ -1,8 +1,8 @@
-# LayerConsensus: Training-Free Anomaly Detection via Depth-Selective Soft-Projection Consensus
+# ProCon: Training-Free Anomaly Detection via Depth-Selective Soft-Projection Consensus
 
 **Final recipe:** layer pool `{4, 5, 7, 10}` (1-based, of 12), aggregation `mean`, normalization `none`, readout `top-mean (ratio = 0.005)`, on top of the SoftProjCore soft-projection scoring engine.
 
-**Project:** `paper_codes/structcore_new_project` · DINOv2 ViT-B/14 (frozen) · seed 0 · training-free (no decoder, no fine-tuning, no pseudo-anomaly supervision).
+**Implementation:** DINOv2 ViT-B/14 (frozen) · seed 0 · training-free (no decoder, no fine-tuning, no pseudo-anomaly supervision).
 
 ---
 
@@ -48,10 +48,10 @@ ConsensusCore      : s(z) = Q_q over B banks          consensus over perturbed b
    |  swap scoring (nearest -> soft projection)
 SoftProjCore       : per-bank residual ||z - z_hat||,  z_hat = sum_j w_j m_j
    |  + layer axis  (this work)
-LayerConsensus     : run SoftProjCore per layer, fuse per-layer residuals by a fixed operator
+ProCon     : run SoftProjCore per layer, fuse per-layer residuals by a fixed operator
 ```
 
-LayerConsensus is therefore a **double consensus**: bank-consensus (SoftProjCore) nested inside layer-consensus, with a fixed depth-selective pool.
+ProCon is therefore a **double consensus**: bank-consensus (SoftProjCore) nested inside layer-consensus, with a fixed depth-selective pool.
 
 ### 2.2 SoftProjCore unit operation (the scoring engine)
 
@@ -79,7 +79,7 @@ $$
 
 the entropy of the reconstruction weights. A **diffuse** distribution (high `H_b`) means no single normal anchor dominates — the patch is reconstructed by smearing many references, which can over-fit an anomaly and produce a deceptively small residual. `H_b` is therefore computed and logged as an optional penalty / diagnostic (`return_entropy=True`), but the champion uses the **plain residual** `r_b(z)` only; entropy gating was not needed once the median bank-consensus already suppresses these diffuse false-normals (§3.2).
 
-Reference: [`skipcore/consensus/soft_projection.py`](skipcore/consensus/soft_projection.py), `soft_projection_bank`, `auto_tau`.
+Reference: [`procon/consensus/soft_projection.py`](../procon/consensus/soft_projection.py), `soft_projection_bank`, `auto_tau`.
 
 ### 2.3 Layer axis (the contribution)
 
@@ -93,7 +93,7 @@ $$
 S_\ell(z) = \mathrm{median}_{b=1..B}\; r_b^{(\ell)}(z).
 $$
 
-> **Why independent banks matter.** The default SoftProjCore concatenates all layers *before* building one coreset, so the k-center selection is dominated by the concatenated geometry and the per-layer profile is contaminated. LayerConsensus builds a coreset *per layer*, so `S_ℓ` is a faithful, uncontaminated layer-`ℓ` signal. This is the "coreset thesis": independent per-layer banks (mean fusion) beat the concat single-bank baseline (§4.1).
+> **Why independent banks matter.** The default SoftProjCore concatenates all layers *before* building one coreset, so the k-center selection is dominated by the concatenated geometry and the per-layer profile is contaminated. ProCon builds a coreset *per layer*, so `S_ℓ` is a faithful, uncontaminated layer-`ℓ` signal. This is the "coreset thesis": independent per-layer banks (mean fusion) beat the concat single-bank baseline (§4.1).
 
 ### 2.4 Fusion (the cooking method)
 
@@ -127,7 +127,7 @@ S_{\text{img}} = \mathrm{Readout}(S_{\text{map}}), \quad
 $$
 **Selected: top-mean with ratio 0.005** (mean of the top-0.5% patch scores). Readout does not affect pixel metrics; it only sharpens the image score.
 
-Reference: [`skipcore/consensus/runner.py`](skipcore/consensus/runner.py), `evaluate_category_layergroup` (two-level combine, per-image robust, readout), `_group_normalize`, `_fit_group_norm_stats`.
+Reference: [`procon/consensus/runner.py`](../procon/consensus/runner.py), `evaluate_category_layergroup` (two-level combine, per-image robust, readout), `_group_normalize`, `_fit_group_norm_stats`.
 
 ### 2.5 Final algorithm
 
@@ -157,7 +157,7 @@ This section pins down every operator to the actual code, so the algorithm is re
 
 ### 2.6.1 Feature extraction — one forward, per-layer projection
 
-`DINOv2MultiLayerBackbone.extract_per_layer(x, layers, projections)` ([`dinov2_multilayer.py`](../../skipcore/models/backbones/dinov2_multilayer.py)) runs the **frozen** backbone **once** with forward hooks on every requested block and returns a dict `{layer: feat}`:
+`DINOv2MultiLayerBackbone.extract_per_layer(x, layers, projections)` ([`dinov2_multilayer.py`](../procon/models/backbones/dinov2_multilayer.py)) runs the **frozen** backbone **once** with forward hooks on every requested block and returns a dict `{layer: feat}`:
 
 ```
 _ = model(x)                                  # single forward, hooks capture block outputs
@@ -171,7 +171,7 @@ for layer in layers:                          # layer < 0 (negative index)
 
 - **Per-layer L2 first**, then the random projection. Each layer `ℓ` owns its **own** projection module `projections[ℓ]`.
 - The 28×28 grid is identical across all blocks, so layer maps are pixel-aligned with no resolution confound.
-- This single-forward path is **verified bit-identical** (`0.0e+00`) to instantiating one concat-extractor per layer ([`tools/verify_single_forward.py`](../../tools/verify_single_forward.py)).
+- The single-forward path is bit-identical (`0.0e+00`) to instantiating one concat extractor per layer.
 
 ### 2.6.2 Random projection (the "RP_512")
 
@@ -179,7 +179,7 @@ A fixed `nn.Linear(768 → 512, bias=False)` per layer, weights seeded by `proj_
 
 ### 2.6.3 Per-layer coreset (the only "training")
 
-For each layer `ℓ` and bank seed `b`, `ApproxGreedyCoresetBuilder` ([`approx_greedy_coreset.py`](../../skipcore/memory/builders/approx_greedy_coreset.py)) selects `M = ⌈ratio·N⌉` anchors (`ratio = 0.01`) by greedy farthest-point (k-center) sampling on the projected train-normal features:
+For each layer `ℓ` and bank seed `b`, `ApproxGreedyCoresetBuilder` ([`approx_greedy_coreset.py`](../procon/memory/builders/approx_greedy_coreset.py)) selects `M = ⌈ratio·N⌉` anchors (`ratio = 0.01`) by greedy farthest-point (k-center) sampling on the projected train-normal features:
 
 ```
 reduced = Linear_192(features)               # extra 512->192 projection for the DISTANCE only
@@ -201,7 +201,7 @@ bank = original_features[selected_idx]        # store the UN-projected-512 vecto
 
 ### 2.6.4 SoftProjCore soft-projection residual (the scoring unit)
 
-`soft_projection_bank(z, bank, k=5, tau)` ([`soft_projection.py`](../../skipcore/consensus/soft_projection.py)):
+`soft_projection_bank(z, bank, k=5, tau)` ([`soft_projection.py`](../procon/consensus/soft_projection.py)):
 
 ```
 d2     = cdist(z_fp32, bank_fp32) ** 2        # [P, M]
@@ -224,7 +224,7 @@ tau   = max(tau, 1e-8)
 
 ### 2.6.5 Two-level fusion (`_score_one_image_layergroup`)
 
-The champion sets `layer_combine = mean`, `groupnorm = none`, so for one test image ([`runner.py`](../../skipcore/consensus/runner.py), single source of truth for both the legacy and streaming paths):
+The champion sets `layer_combine = mean`, `groupnorm = none`, so for one test image ([`runner.py`](../procon/consensus/runner.py), single source of truth for both the legacy and streaming paths):
 
 ```
 for each layer ℓ (a one-layer "group"):
@@ -250,7 +250,7 @@ Per category, per image: `G·B = 20` soft-projection calls, each an `[P,M]` `cdi
 
 ### 2.6.8 Champion recipe object (`p3_drop4_3689`)
 
-Defined in [`recipes.py`](../../skipcore/consensus/recipes.py) as one-layer groups with the Phase-2 cooking frozen:
+Defined in [`recipes.py`](../procon/consensus/recipes.py) as one-layer groups with the Phase-2 cooking frozen:
 
 ```python
 pool   = [-3, -6, -8, -9]
@@ -375,7 +375,7 @@ Deliverables: `phase4_summary.csv`, `phase4_decision.md`.
 
 ### 4.4b Component Analysis: From Retrieval to Projection Consensus
 
-This is the **central ablation of the paper**: it turns the result section from a "score table" into a *proof that each axis of the genealogy (§2.1) actually contributes*. Every step is measured on the **full** datasets at the **same 1% coreset budget, same frozen DINOv2 ViT-B/14 backbone, and the same top-mean readout family**, so the only thing that changes between rows is the single design axis named in that row. We denote the final method **ProCon** (Projection-Consensus = the LayerConsensus champion `{4,5,7,10}`).
+This is the **central ablation of the paper**: it turns the result section from a "score table" into a *proof that each axis of the genealogy (§2.1) actually contributes*. Every step is measured on the **full** datasets at the **same 1% coreset budget, same frozen DINOv2 ViT-B/14 backbone, and the same top-mean readout family**, so the only thing that changes between rows is the single design axis named in that row. We denote the final method **ProCon** (Projection-Consensus = the ProCon champion `{4,5,7,10}`).
 
 **Table — Genealogy of ProCon: from hard memory retrieval to projection-consistent memory.**
 
@@ -417,7 +417,7 @@ That is exactly the paper's storyline:
 
 **Findings.** The ladder is **monotone on every pixel metric on both datasets** — each axis (bank → scoring → layer) strictly improves P-AUROC, P-AP and AUPRO with **I-AUROC never regressing**. On VisA the cumulative PatchCore→ProCon gain is **+1.35 I-AUROC, +2.15 P-AUROC, +5.01 P-AP, +4.50 AUPRO** (points), with the soft-projection (SoftProjCore) and layer (ProCon) steps contributing the largest pixel-metric jumps; on MVTec the image level is already saturated (all ≈ 0.997) so the gains concentrate in localization (P-AP +5.63, AUPRO +3.09 from PatchCore). This is strong evidence that the contribution is *the bank/scoring redesign itself*, not the backbone or budget.
 
-> **Fairness note.** All four rows use the identical frozen backbone and the common **1% coreset budget** (the champion's operating point; the 5%/10% study is §4.5, separate). The pixel metrics (P-AUROC/P-AP/AUPRO) — which carry the ladder's argument — are **readout-invariant** (readout only maps the patch map to the image score, §2.6.6). The image-score readout ratio is held in the same top-mean family across rows; the small residual protocol difference (PatchCore/ConsensusCore/SoftProjCore logged at top-mean 0.01 vs the champion's 0.005) touches only I-AUROC, which is saturated on MVTec and reported as-is on VisA. Sources: PatchCore `runs_consensuscore/mvtec/single/` and `full_validation/visa/v0_single/`; ConsensusCore/SoftProjCore `full_validation/{mvtec,visa}/`; ProCon as in §4.4.
+> **Fairness note.** All four rows use the identical frozen backbone and the common **1% coreset budget** (the champion's operating point; the 5%/10% study is §4.5, separate). The pixel metrics (P-AUROC/P-AP/AUPRO) — which carry the ladder's argument — are **readout-invariant** (readout only maps the patch map to the image score, §2.6.6). The image-score readout ratio is held in the same top-mean family across rows; the small residual protocol difference (PatchCore/ConsensusCore/SoftProjCore logged at top-mean 0.01 vs the champion's 0.005) touches only I-AUROC, which is saturated on MVTec and reported as-is on VisA. Sources: PatchCore `runs_procon/mvtec/single/` and `full_validation/visa/v0_single/`; ConsensusCore/SoftProjCore `full_validation/{mvtec,visa}/`; ProCon as in §4.4.
 
 ### 4.4c Layer-independence ablation — concat memory vs independent per-layer memory (full MVTec)
 
@@ -431,7 +431,7 @@ The genealogy (§2.3, §2.4b) argues that concatenating layers *before* coreset 
 | **ProCon (independent memory)** | **0.9971** | **0.9990** | **0.9924** | **0.9862** | **0.7298** | **0.7056** | **0.9566** | **0.9274** |
 | **Δ (independent − concat)** | **+0.0015** | +0.0007 | +0.0018 | **+0.0023** | **+0.0176** | +0.0089 | **+0.0060** | **+0.0197** |
 
-**Findings.** Independent per-layer memory beats concat single memory on **all 8 metrics**, with the largest gaps exactly where the localization argument predicts — **P-AP +1.76 pt**, **AUPRO +0.60 pt**, **PRO +1.97 pt** — while I-AUROC is preserved (+0.15 pt). This is the same-setting counterpart of the §4.2 result and confirms the "coreset thesis" at the champion operating point, not only under the Phase-2 protocol. Note the two concat numbers are **not comparable across protocols**: §4.2's 0.6854 is bottom-3 / 5-layer `{-3,-4,-6,-8,-9}`, whereas this 0.7122 is full-MVTec / 4-layer `{4,5,7,10}` — same recipe, different validation set and pool. Recipe: `concat4_3689` (identical to `p3_drop4_3689` except `layer_fusion=concat` over one shared coreset). Deliverables: `runs_consensuscore/layer_independence/concat4_3689/mvtec/` (per-category JSON + CSV).
+**Findings.** Independent per-layer memory beats concat single memory on **all 8 metrics**, with the largest gaps exactly where the localization argument predicts — **P-AP +1.76 pt**, **AUPRO +0.60 pt**, **PRO +1.97 pt** — while I-AUROC is preserved (+0.15 pt). This is the same-setting counterpart of the §4.2 result and confirms the "coreset thesis" at the champion operating point, not only under the Phase-2 protocol. Note the two concat numbers are **not comparable across protocols**: §4.2's 0.6854 is bottom-3 / 5-layer `{-3,-4,-6,-8,-9}`, whereas this 0.7122 is full-MVTec / 4-layer `{4,5,7,10}` — same recipe, different validation set and pool. Recipe: `concat4_3689` (identical to `p3_drop4_3689` except `layer_fusion=concat` over one shared coreset). Deliverables: `runs_procon/layer_independence/concat4_3689/mvtec/` (per-category JSON + CSV).
 
 ---
 
@@ -461,7 +461,7 @@ Does the verdict survive at larger memory budgets? We re-run **both** the champi
 | SoftProjCore ref | 5% | 0.9857 | 0.9879 | 0.9612 | 0.9867 | 0.5034 | 0.5402 | 0.9613 | 0.8715 |
 | SoftProjCore ref | 10% | 0.9849 | 0.9871 | 0.9609 | 0.9868 | 0.5033 | 0.5390 | 0.9613 | 0.8733 |
 
-**Findings.** (i) **The champion dominates SoftProjCore at every budget** on both datasets (P-AP, P-AUROC, AUPRO all higher, I-AUROC preserved) — the Phase-4 verdict is **budget-invariant**, not an artifact of the 1% operating point. (ii) **Both methods saturate at 5%**: 1%→5% gives a small, consistent gain, while 5%→10% is essentially flat (ΔP-AP ≤ 0.001) — the 5% sweet spot observed in the bottom-3 study reproduces on the full datasets for both methods. (iii) **Memory-bank design beats memory budget**: the champion at **1%** already exceeds SoftProjCore at **10%** on P-AP (MVTec 0.7298 > 0.7010; VisA 0.5229 > 0.5033), i.e. the depth-selective layer consensus extracts more from a 10× smaller bank than the concat baseline does from a 10× larger one — directly supporting the research question that the *bank*, not the budget, is the lever. (iv) I-AUROC stays ≥ 0.985 across all budgets, so the sanity gate holds throughout. Per-category budget tables (all 8 metrics) are in the appendix §A.1. Deliverables: `runs_consensuscore/coreset_budget/full/` (108 per-category JSONs), `scripts/coreset_budget_full.sh`.
+**Findings.** (i) **The champion dominates SoftProjCore at every budget** on both datasets (P-AP, P-AUROC, AUPRO all higher, I-AUROC preserved) — the Phase-4 verdict is **budget-invariant**, not an artifact of the 1% operating point. (ii) **Both methods saturate at 5%**: 1%→5% gives a small, consistent gain, while 5%→10% is essentially flat (ΔP-AP ≤ 0.001) — the 5% sweet spot observed in the bottom-3 study reproduces on the full datasets for both methods. (iii) **Memory-bank design beats memory budget**: the champion at **1%** already exceeds SoftProjCore at **10%** on P-AP (MVTec 0.7298 > 0.7010; VisA 0.5229 > 0.5033), i.e. the depth-selective layer consensus extracts more from a 10× smaller bank than the concat baseline does from a 10× larger one — directly supporting the research question that the *bank*, not the budget, is the lever. (iv) I-AUROC stays ≥ 0.985 across all budgets, so the sanity gate holds throughout. Per-category budget tables (all 8 metrics) are in the appendix §A.1. Deliverables: `runs_procon/coreset_budget/full/` (108 per-category JSONs), `scripts/coreset_budget_full.sh`.
 
 ---
 
@@ -479,7 +479,7 @@ How much does the **bank-consensus** axis contribute *once the layer-consensus a
 | 4 | 0.9970 | 0.9989 | 0.9919 | 0.9861 | 0.7300 | 0.7057 | 0.9565 | 0.9190 |
 | **5** | **0.9971** | **0.9990** | 0.9924 | **0.9862** | 0.7298 | 0.7056 | **0.9566** | 0.9274 |
 
-**Findings.** (i) **The ranking metrics increase monotonically with `B`** — P-AUROC 0.9857→0.9862, AUPRO 0.9553→0.9566, I-AUROC 0.9968→0.9971 — so bank-consensus does help, confirming the ConsensusCore/SoftProjCore stabilization effect is still active. (ii) **But the gain is tiny and saturating** (≈ +0.05–0.13 pt from `B=1` to `B=5`; P-AP is flat at 0.727–0.730). Crucially, **`B = 1` (a single per-layer coreset, no bank-consensus) already reaches P-AP 0.7274**, well above the SoftProjCore concat reference (0.6955, §4.4b). (iii) **Interpretation — the two consensus axes are partially redundant stabilizers.** Averaging four *independent* layer maps is itself a strong variance-reduction ensemble, so it absorbs most of the noise that bank-consensus removes on a single concat bank; once the layer axis is in place, extra banks have little left to suppress. This is why the paper keeps `B = 5` as a cheap safety default rather than a load-bearing component — the localization gain comes from the **layer** axis, and the bank axis is a modest, saturating add-on. Deliverables: `runs_consensuscore/bank_sweep/mvtec/b{1..5}/` (per-`B` JSON + CSV), `scripts/bank_sweep_mvtec.sh`.
+**Findings.** (i) **The ranking metrics increase monotonically with `B`** — P-AUROC 0.9857→0.9862, AUPRO 0.9553→0.9566, I-AUROC 0.9968→0.9971 — so bank-consensus does help, confirming the ConsensusCore/SoftProjCore stabilization effect is still active. (ii) **But the gain is tiny and saturating** (≈ +0.05–0.13 pt from `B=1` to `B=5`; P-AP is flat at 0.727–0.730). Crucially, **`B = 1` (a single per-layer coreset, no bank-consensus) already reaches P-AP 0.7274**, well above the SoftProjCore concat reference (0.6955, §4.4b). (iii) **Interpretation — the two consensus axes are partially redundant stabilizers.** Averaging four *independent* layer maps is itself a strong variance-reduction ensemble, so it absorbs most of the noise that bank-consensus removes on a single concat bank; once the layer axis is in place, extra banks have little left to suppress. This is why the paper keeps `B = 5` as a cheap safety default rather than a load-bearing component — the localization gain comes from the **layer** axis, and the bank axis is a modest, saturating add-on. Deliverables: `runs_procon/bank_sweep/mvtec/b{1..5}/` (per-`B` JSON + CSV), `scripts/bank_sweep_mvtec.sh`.
 
 ---
 
@@ -529,7 +529,7 @@ MVTec (15) and VisA (12) are small and largely saturated at the image level. To 
 | zipper | 0.9926 | 0.9960 | 0.9691 | 0.9911 | 0.6384 | 0.6576 | 0.9705 | 0.9364 |
 | **Mean** | **0.9315** | **0.9115** | **0.8477** | **0.9904** | **0.4935** | **0.5149** | **0.9719** | **0.9124** |
 
-**Findings.** (i) **Localization transfers strongly**: P-AUROC 0.990 and AUPRO 0.972 averaged over 30 categories, with the champion recipe *unchanged* from MVTec/VisA — the depth pool `{4,5,7,10}` is not over-fit to the small benchmarks. (ii) **Image AUROC is competitive but more category-dependent** (0.82–0.995): the strongest are rigid, well-structured parts (rolled_strip_base 0.995, switch 0.990, zipper 0.993, tape/terminalblock 0.989), the weakest are fine-texture / small-defect classes (toy_brick 0.824, mint 0.848, usb_adaptor 0.860). (iii) **P-AP / P-F1 sit lower (0.49 / 0.51) by construction**: Real-IAD defects occupy an extremely small pixel fraction, so the precision-recall-area and F1 metrics have a low structural ceiling (a known property of the benchmark; ranking metrics P-AUROC/AUPRO are unaffected and remain high). (iv) The result is a **pure generalization check** — only the champion is reported here; per-axis baselines (PatchCore/ConsensusCore/SoftProjCore) on Real-IAD are left to the main benchmark table. Deliverables: `runs_consensuscore/realiad/r01/<category>/results_seed0.json` (30 categories), `scripts/realiad_champion.sh`.
+**Findings.** (i) **Localization transfers strongly**: P-AUROC 0.990 and AUPRO 0.972 averaged over 30 categories, with the champion recipe *unchanged* from MVTec/VisA — the depth pool `{4,5,7,10}` is not over-fit to the small benchmarks. (ii) **Image AUROC is competitive but more category-dependent** (0.82–0.995): the strongest are rigid, well-structured parts (rolled_strip_base 0.995, switch 0.990, zipper 0.993, tape/terminalblock 0.989), the weakest are fine-texture / small-defect classes (toy_brick 0.824, mint 0.848, usb_adaptor 0.860). (iii) **P-AP / P-F1 sit lower (0.49 / 0.51) by construction**: Real-IAD defects occupy an extremely small pixel fraction, so the precision-recall-area and F1 metrics have a low structural ceiling (a known property of the benchmark; ranking metrics P-AUROC/AUPRO are unaffected and remain high). (iv) The result is a **pure generalization check** — only the champion is reported here; per-axis baselines (PatchCore/ConsensusCore/SoftProjCore) on Real-IAD are left to the main benchmark table. Deliverables: `runs_procon/realiad/r01/<category>/results_seed0.json` (30 categories), `scripts/realiad_champion.sh`.
 
 ---
 
@@ -575,7 +575,7 @@ To probe whether the champion transfers **beyond the MVTec/VisA/Real-IAD "consum
 | retina-RESC | 0.9335 | 0.9290 | 0.8451 | 0.9596 | 0.7239 | 0.6518 | 0.8717 | 0.7793 |
 | **Mean** | **0.8767** | **0.8649** | **0.8228** | **0.9716** | **0.5594** | **0.5553** | **0.9075** | **0.8289** |
 
-**Findings.** (i) **Localization transfers across all three domains without any re-tuning**: P-AUROC ≥ 0.972 and AUPRO ≥ 0.908 on every dataset, matching the strong localization the champion shows on MVTec/VisA/Real-IAD — direct evidence that the depth pool `{4,5,7,10}` is a *domain-agnostic* choice, not fit to consumer-object textures. (ii) **MPDD image-level is near-saturated** (I-AUROC 0.974; connector, metal_plate, bracket_white = 1.000), so the champion is competitive with supervised/decoder methods on the metal-part benchmark it was never tuned on. (iii) **The apparent P-AP spread is a defect-size artifact, not a failure**: within MPDD, the large-defect classes (metal_plate 0.972, tubes 0.829, connector 0.761 P-AP) score high while the tiny-defect brackets (bracket_white 0.079) collapse P-AP by construction — exactly the low-pixel-fraction ceiling seen on Real-IAD (§4.6), while their P-AUROC/AUPRO stay ≥ 0.99/0.96. (iv) **The one genuinely hard case is `liver` (histopathology)** at I-AUROC 0.757: distinguishing normal from abnormal tissue texture is a domain where a frozen natural-image DINOv2 backbone is weakest, yet even there localization holds (P-AUROC 0.975). All runs use `B = 1` and the frozen champion; deliverables: `runs_consensuscore/extra_benchmarks_b1/{mpdd,btad,uni_medical}/<category>/results_seed0.json`, `scripts/run_extra_benchmarks.sh`.
+**Findings.** (i) **Localization transfers across all three domains without any re-tuning**: P-AUROC ≥ 0.972 and AUPRO ≥ 0.908 on every dataset, matching the strong localization the champion shows on MVTec/VisA/Real-IAD — direct evidence that the depth pool `{4,5,7,10}` is a *domain-agnostic* choice, not fit to consumer-object textures. (ii) **MPDD image-level is near-saturated** (I-AUROC 0.974; connector, metal_plate, bracket_white = 1.000), so the champion is competitive with supervised/decoder methods on the metal-part benchmark it was never tuned on. (iii) **The apparent P-AP spread is a defect-size artifact, not a failure**: within MPDD, the large-defect classes (metal_plate 0.972, tubes 0.829, connector 0.761 P-AP) score high while the tiny-defect brackets (bracket_white 0.079) collapse P-AP by construction — exactly the low-pixel-fraction ceiling seen on Real-IAD (§4.6), while their P-AUROC/AUPRO stay ≥ 0.99/0.96. (iv) **The one genuinely hard case is `liver` (histopathology)** at I-AUROC 0.757: distinguishing normal from abnormal tissue texture is a domain where a frozen natural-image DINOv2 backbone is weakest, yet even there localization holds (P-AUROC 0.975). All runs use `B = 1` and the frozen champion; deliverables: `runs_procon/extra_benchmarks_b1/{mpdd,btad,uni_medical}/<category>/results_seed0.json`, `scripts/run_extra_benchmarks.sh`.
 
 ---
 
@@ -655,20 +655,20 @@ To probe whether the champion transfers **beyond the MVTec/VisA/Real-IAD "consum
 
 ```bash
 # Final recipe, full MVTec
-python run_consensuscore.py --dataset mvtec --recipe p3_drop4_3689 \
-  --output runs_consensuscore/layer_consensus/phase4/p3_drop4_3689/mvtec
+python run_procon.py --dataset mvtec --recipe p3_drop4_3689 \
+  --output runs_procon/layer_consensus/phase4/p3_drop4_3689/mvtec
 # Final recipe, full VisA
-python run_consensuscore.py --dataset visa  --recipe p3_drop4_3689 \
-  --output runs_consensuscore/layer_consensus/phase4/p3_drop4_3689/visa
+python run_procon.py --dataset visa  --recipe p3_drop4_3689 \
+  --output runs_procon/layer_consensus/phase4/p3_drop4_3689/visa
 ```
 
-Recipe `p3_drop4_3689` ≡ pool `{-3,-6,-8,-9}`, `layer_combine=mean`, `v28_groupnorm=none`, `v28_readout=topmean`, `topmean_ratio=0.005`, defined in [`skipcore/consensus/recipes.py`](skipcore/consensus/recipes.py). Phase scripts under `scripts/layer_consensus_phase{2,3,3b,4}.sh`; analysis tools under `tools/layer_consensus_phase{2,3,4}.py`; raw JSON preserved under `runs_consensuscore/layer_consensus/`.
+Recipe `p3_drop4_3689` ≡ pool `{-3,-6,-8,-9}`, `layer_combine=mean`, `v28_groupnorm=none`, `v28_readout=topmean`, `topmean_ratio=0.005`, defined in [`procon/consensus/recipes.py`](../procon/consensus/recipes.py). Raw JSON is written under `runs_procon/layer_consensus/`.
 
 ---
 
 ## Appendix A — Per-category coreset-budget tables
 
-Full per-category breakdown (all 8 metrics) for the budget-scalability study of §4.5. The champion (ProCon, pool `{4,5,7,10}`) at 5% and 10% coreset ratios; the 1% per-category tables are the §5 Recipe Card tables. SoftProjCore-reference per-category JSONs are preserved under `runs_consensuscore/coreset_budget/full/v9_softproj_median_r{05,10}/`.
+Full per-category breakdown (all 8 metrics) for the budget-scalability study of §4.5. The champion (ProCon, pool `{4,5,7,10}`) at 5% and 10% coreset ratios; the 1% per-category tables are the §5 Recipe Card tables. SoftProjCore-reference per-category JSONs are preserved under `runs_procon/coreset_budget/full/v9_softproj_median_r{05,10}/`.
 
 ### A.1 ProCon @ 5% coreset
 

@@ -1,4 +1,4 @@
-# SkipCore Configuration for VisA Dataset
+# ProCon Configuration for VisA Dataset
 # Multi-layer DINOv2 backbone with routing and score-structure augmentation
 
 backbone:
@@ -40,13 +40,13 @@ dataset:
   name: visa
   num_workers: 8
   resize: 448
-  root: /media/jjack/Extreme SSD/dataset/visa/visa_mvtec
+  root: datasets/visa
 
 eval:
   pixel_fpr_limit: 0.3
 
 experiment:
-  name: skipcore_v1
+  name: procon_v1
   seed: 0
 
 features:

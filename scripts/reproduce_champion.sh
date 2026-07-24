@@ -8,13 +8,13 @@ source "$(conda info --base)/etc/profile.d/conda.sh"
 conda activate ad_env
 
 RECIPE="p3_drop4_3689"
-ROOT="runs_consensuscore/champion"
+ROOT="runs_procon/champion"
 
 for DS in mvtec visa; do
   OUT="${ROOT}/${DS}"
   mkdir -p "$OUT"
   echo "=== ${DS} champion $(date) ==="
-  python run_consensuscore.py \
+  python run_procon.py \
     --dataset "$DS" \
     --recipe "$RECIPE" \
     --output "$OUT"

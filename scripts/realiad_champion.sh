@@ -19,8 +19,8 @@ PROJ="$(pwd)"
 # not available, so we invoke the environment interpreter directly.
 PY="$CONDA_BASE/envs/ad_env/bin/python"
 
-ROOT="runs_consensuscore/realiad"
-LOG="runs_consensuscore/realiad_run.log"
+ROOT="runs_procon/realiad"
+LOG="runs_procon/realiad_run.log"
 mkdir -p "$ROOT"
 RECIPE="p3_drop4_3689"   # champion {-3,-6,-8,-9}, 1% budget
 SUB="r01"
@@ -41,7 +41,7 @@ for CAT in $CATS; do
   systemctl --user reset-failed "$UNIT" 2>/dev/null || true
   systemd-run --user --unit="$UNIT" --wait --collect \
     --working-directory="$PROJ" \
-    bash -c "$PY -u run_consensuscore.py --dataset realiad --category '$CAT' \
+    bash -c "$PY -u run_procon.py --dataset realiad --category '$CAT' \
       --recipe '$RECIPE' --bank_vectorized --output '$OUT'" >>"$LOG" 2>&1
   echo ">>> ${CAT} done $(date)" | tee -a "$LOG"
 done

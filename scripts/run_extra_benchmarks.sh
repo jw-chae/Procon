@@ -11,13 +11,13 @@ RECIPE="p3_drop4_3689"
 
 run_one() {
     local ds="$1" cat="$2"
-    local out="runs_consensuscore/extra_benchmarks_b1/${ds}/${cat}"
+    local out="runs_procon/extra_benchmarks_b1/${ds}/${cat}"
     if [[ -f "${out}/results_seed0.json" ]]; then
         echo "== skip ${ds}/${cat} (exists) =="
         return
     fi
     echo "== ${ds}/${cat} =="
-    PYTHONPATH="$PWD" "$PY" run_consensuscore.py \
+    PYTHONPATH="$PWD" "$PY" run_procon.py \
         --dataset "$ds" --recipe "$RECIPE" --num_banks 1 --topmean_ratio 0.005 \
         --category "$cat" --output "$out"
 }
@@ -27,4 +27,4 @@ for c in brain liver retina_resc; do run_one uni_medical "$c"; done
 # BTAD: three product categories.
 for c in 01 02 03; do run_one btad "$c"; done
 
-echo "== extra benchmarks done -> runs_consensuscore/extra_benchmarks_b1/ =="
+echo "== extra benchmarks done -> runs_procon/extra_benchmarks_b1/ =="

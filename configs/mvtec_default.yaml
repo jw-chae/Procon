@@ -1,4 +1,4 @@
-# SkipCore Configuration for MVTec AD
+# ProCon Configuration for MVTec AD
 # Multi-layer DINOv2 backbone with routing and score-structure augmentation
 
 backbone:
@@ -43,13 +43,13 @@ dataset:
   name: mvtec
   num_workers: 8
   resize: 448
-  root: /media/jjack/Extreme SSD/dataset/mvtec
+  root: datasets/mvtec_ad
 
 eval:
   pixel_fpr_limit: 0.3
 
 experiment:
-  name: skipcore_v1
+  name: procon_v1
   seed: 0
 
 features:

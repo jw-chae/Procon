@@ -1,6 +1,6 @@
 # ProCon: Training-Free Anomaly Detection via Depth-Selective Soft-Projection Consensus
 
-**ProCon** (*Projection-Consensus*, a.k.a. **LayerConsensus**) is a **training-free** unsupervised
+**ProCon** (*Projection-Consensus*) is a **training-free** unsupervised
 anomaly detection (UAD) method. It improves retrieval-based UAD purely by **redesigning the memory
 bank and the scoring rule** — no decoder training, no backbone fine-tuning, no pseudo-anomaly
 supervision — on top of a **frozen DINOv2 ViT-B/14**.
@@ -76,7 +76,7 @@ conda create -n ad_env python=3.10 -y
 conda activate ad_env
 pip install -U pip
 pip install -r requirements.txt
-pip install -e .          # installs the `skipcore` package
+pip install -e .          # installs the `procon` package
 ```
 
 Tested with Python 3.10, `torch` 2.5.1 + CUDA 12.1, `torchvision` 0.20.1 on a single 24 GB GPU.
@@ -110,21 +110,20 @@ bash scripts/realiad_champion.sh
 Or a single dataset directly:
 
 ```bash
-python run_consensuscore.py --dataset mvtec --recipe p3_drop4_3689 --output runs/mvtec
+python run_procon.py --dataset mvtec --recipe p3_drop4_3689 --output runs/mvtec
 ```
 
 ## Repository layout
 
 ```text
-run_consensuscore.py   # main entry point (build coreset + evaluate)
-skipcore/              # core package
+run_procon.py         # main entry point (build coreset + evaluate)
+procon/               # core package
   consensus/           #   soft-projection scoring, layer-consensus runner, recipes
   models/backbones/    #   frozen DINOv2 multi-layer extractor
   memory/              #   approximate greedy k-center coreset
   data/ eval/ inference/ postprocess/ utils/
 configs/               # per-dataset YAML configs
 scripts/               # reproduction scripts
-tools/                 # figure rendering + verification utilities
 figures/               # figures
 docs/METHOD.md         # full method + all benchmark results
 ```

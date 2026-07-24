@@ -1,4 +1,4 @@
-# SkipCore Configuration for Real-IAD (single-view / SV protocol)
+# ProCon Configuration for Real-IAD (single-view / SV protocol)
 # Multi-layer DINOv2 backbone; same engine as MVTec, Real-IAD data adapter.
 
 backbone:
@@ -58,13 +58,13 @@ dataset:
   name: realiad
   num_workers: 8
   resize: 448
-  root: /media/jjack/Extreme SSD/dataset/realiad/realiad_1024
+  root: datasets/realiad_1024
 
 eval:
   pixel_fpr_limit: 0.3
 
 experiment:
-  name: skipcore_v1
+  name: procon_v1
   seed: 0
 
 features:

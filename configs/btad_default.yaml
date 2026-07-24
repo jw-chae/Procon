@@ -27,11 +27,11 @@ dataset:
   name: btad
   num_workers: 8
   resize: 448
-  root: /media/jjack/Extreme SSD/dataset/btad
+  root: datasets/btad
 eval:
   pixel_fpr_limit: 0.3
 experiment:
-  name: skipcore_v1
+  name: procon_v1
   seed: 0
 features:
   normalize: null

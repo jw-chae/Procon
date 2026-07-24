@@ -25,9 +25,10 @@ nohup.out
 *.tmp
 
 # ---- Datasets (never commit) ----
-data/
-dataset/
-datasets/
+# Root-anchored so package modules such as procon/data/ remain trackable.
+/data/
+/dataset/
+/datasets/
 
 # ---- Heavy model / feature binaries ----
 *.pth
@@ -42,9 +43,9 @@ datasets/
 backbones/weights/
 
 # ---- Run outputs: keep only markdown write-ups, drop all binaries/JSON/CSV ----
-runs_consensuscore/**
-!runs_consensuscore/**/
-!runs_consensuscore/**/*.md
+runs_procon/**
+!runs_procon/**/
+!runs_procon/**/*.md
 
 # ---- Figures: keep final PNG/PDF at figures/ root, drop intermediate maps ----
 figures/fig5_maps/
